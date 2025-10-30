@@ -60,7 +60,8 @@ def mask_data(data: pd.DataFrame, base_mask: np.ndarray, experiment: Experiment,
 
     mask = base_mask
     if mask is None:
-        mask = np.ones(len(data))
+        mask = np.ones(len(data), dtype=bool)
+        data = data.reset_index()
 
     if turbine_count is not None:
         # If turbine count provided, sample turbine_count random turbines for masking
@@ -75,7 +76,7 @@ def mask_data(data: pd.DataFrame, base_mask: np.ndarray, experiment: Experiment,
         case Experiment.BLACKOUT:
             # size -> consecutive missing intervals => [30, 60, 150, 300] minutes
             # divide by 10 to get number of consecutive entries
-            size = size / 10
+            size = int(size / 10)
             # mask intervals for each turbine
             for _, turbine_df in data.groupby("TurbID"):
                 n_measurements = len(turbine_df)
@@ -87,7 +88,7 @@ def mask_data(data: pd.DataFrame, base_mask: np.ndarray, experiment: Experiment,
         case Experiment.MAINTENANCE:
             # size -> consecutive missing intervals => [1, 2, 7, 14] days
             # multiply by 6 * 24 to get number of consecutive entries
-            size = size * 6 * 24
+            size = int(size * 6 * 24)
             # mask intervals for each turbine
             for _, turbine_df in data.groupby("TurbID"):
                 n_measurements = len(turbine_df)
@@ -96,7 +97,7 @@ def mask_data(data: pd.DataFrame, base_mask: np.ndarray, experiment: Experiment,
                 # mask `size` consecutive timesteps
                 mask[turbine_df.index[start:start+size]] = 0
 
-    return mask
+    return mask.astype(bool)
 
 
 if __name__ == "__main__":

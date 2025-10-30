@@ -14,14 +14,15 @@ class GRU(nn.Module):
 
     def forward(self, x):
         # x: (B, T, in_dim)
-        # out: (B, out_dim)
+        # out: (B, T, out_dim)
         B, T, _ = x.size()
-        h = torch.zeros(B, self.hid_dim)
+        h = torch.zeros(B, self.hid_dim).to(x.device)
+        outs = []
         for t in range(T):
             h = self.cell(x[:, t, :], h)
-        
-        y_hat = self.fc(h)
-        return y_hat
+            outs.append(self.fc(h))
+
+        return torch.stack(outs, dim=1)
 
 
 class GRUCell(nn.Module):

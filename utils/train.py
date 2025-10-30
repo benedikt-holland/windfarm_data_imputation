@@ -18,8 +18,18 @@ def train_epoch(
     model.train()
     optimizer.zero_grad()
 
-    preds = model(X_batch)
-    loss = criterion(y_batch, preds)
+    preds = model(X_batch)  # [B, T, 1]
+
+    # y_batch is shape [B, T, 3], where in the last dim, 
+    # idx 0 is the true pred, idx 1 is the data mask (0 if unseen), 
+    # and idx 2 is the nan mask (0 if nan)
+    y_true = y_batch[..., 0].unsqueeze(-1)
+    data_mask = y_batch[..., 1]
+    nan_mask = y_batch[..., 2]
+
+    # Pure imputation task -> loss based on predicting simulated missing values correctly
+    loss_mask = (nan_mask == 1) & (data_mask == 0)
+    loss = criterion(preds[loss_mask], y_true[loss_mask])
 
     loss.backward()
     optimizer.step()
@@ -32,16 +42,26 @@ def validate_epoch(
     criterion: nn.Module,            
 ):
     model.eval()
+    with torch.no_grad():
+        preds = model(X_batch)
 
-    preds = model(X_batch)
-    loss = criterion(y_batch, preds)
+        # y_batch is shape [B, T, 3], where in the last dim, 
+        # idx 0 is the true pred, idx 1 is the data mask (0 if unseen), 
+        # and idx 2 is the nan mask (0 if nan)
+        y_true = y_batch[..., 0].unsqueeze(-1)
+        data_mask = y_batch[..., 1]
+        nan_mask = y_batch[..., 2]
+
+        # Pure imputation task -> loss based on predicting simulated missing values correctly
+        loss_mask = (nan_mask == 1) & (data_mask == 0)
+        loss = criterion(preds[loss_mask], y_true[loss_mask])
     
     return loss.item()
 
 def train(
     model: nn.Module,
-    train_loader: torch.utils.data.DataLoader,
-    val_loader: torch.utils.data.DataLoader,
+    train_data: torch.utils.data.DataLoader | tuple[torch.Tensor, torch.Tensor],
+    val_data: torch.utils.data.DataLoader | tuple[torch.Tensor, torch.Tensor],
     optimizer: torch.optim.Optimizer,
     criterion: nn.Module,
     epochs: int = 100,
@@ -57,16 +77,24 @@ def train(
         epoch_train_loss = 0
         epoch_val_loss = 0
 
-        for batch in train_loader:
-            train_loss = train_epoch(model, batch["X"], batch["y"], optimizer, criterion)
-            epoch_train_loss += train_loss * len(batch["X"])
-        
-        epoch_train_loss /= len(train_loader.dataset)
-        
-        for batch in val_loader:
-            val_loss = validate_epoch(model, batch["X"], batch["y"], criterion)
-            epoch_val_loss += val_loss * len(batch["X"])
-        epoch_val_loss /= len(val_loader.dataset)
+        if isinstance(train_data, torch.utils.data.DataLoader):
+            for batch in train_data:
+                train_loss = train_epoch(model, batch.X, batch.y, optimizer, criterion)
+                epoch_train_loss += train_loss * len(batch.X)
+            
+            epoch_train_loss /= len(train_data.dataset)
+        elif isinstance(train_data, tuple):
+            train_X, train_y = train_data
+            epoch_train_loss = train_epoch(model, train_X, train_y, optimizer, criterion)
+
+        if isinstance(val_data, torch.utils.data.DataLoader):
+            for batch in val_data:
+                val_loss = validate_epoch(model, batch.X, batch.y, criterion)
+                epoch_val_loss += val_loss * len(batch.X)
+            epoch_val_loss /= len(val_data.dataset)
+        elif isinstance(val_data, tuple):
+            val_X, val_y = val_data
+            epoch_val_loss = validate_epoch(model, val_X, val_y, criterion)
         
         if epoch == 1 or epoch % 10 == 0:
             print(f"Epoch: {epoch};\ttraining loss: {epoch_train_loss:.4f};\tvalidation loss: {epoch_val_loss:.4f}")
