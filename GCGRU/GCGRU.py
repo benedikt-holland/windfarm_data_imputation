@@ -16,7 +16,7 @@ class GCGRU(nn.Module):
         self.fc = nn.Linear(hid_dim, out_dim)
 
     def forward(self, x):
-        B, T, N, _ = x.shape  # batch, time, nodes, (features)
+        B, T, N, _ = x.shape  # (B, T, N, F/in_dim) - batch, time, nodes, (features)
         h = torch.zeros(B, N, self.hid_dim, device=x.device)
 
         outs = []
@@ -47,7 +47,7 @@ class GCGRUCell(nn.Module):
 
 
     def forward(self, x, edge_index, h_prev, edge_weight = None):
-        B, N, _ = x.shape  # batches, nodes, (features)
+        B, N, _ = x.shape  # (B, N, F/in_dim) - batches, nodes, (features)
         x = x.reshape(B * N, -1)
         h_prev = h_prev.reshape(B * N, -1)
 
