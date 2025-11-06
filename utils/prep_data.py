@@ -11,9 +11,9 @@ torch.manual_seed(42)
 
 
 class Experiment(Enum):
-    RANDOM = "RANDOM"
-    BLACKOUT = "BLACKOUT"
-    MAINTENANCE = "MAINTENANCE"
+    RANDOM = "random"
+    BLACKOUT = "blackout"
+    MAINTENANCE = "maintenance"
 
 def load_data(columns: list | None = None):
     processed_df = pd.read_csv(os.path.join(os.path.dirname(__file__), "../data/processed_data.csv"))
