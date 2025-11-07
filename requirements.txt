@@ -1,3 +1,8 @@
 ipykernel
 pandas
 matplotlib
+torch
+networkx
+scipy
+scikit-learn
+torch_geometric
