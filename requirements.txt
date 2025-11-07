@@ -5,3 +5,4 @@ torch
 networkx
 scipy
 scikit-learn
+torch_geometric
