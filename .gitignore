@@ -1,4 +1,7 @@
-*.csv
+#*.csv
+data.csv
+data_interpolated.csv
+processed_data.csv
 .venv/
 .data/
 __pycache__/
@@ -24,5 +27,5 @@ share/python-wheels/
 *.egg
 MANIFEST
 
-*.pt
-*.pth
+#*.pt
+#*.pth
